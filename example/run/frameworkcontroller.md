@@ -1,13 +1,30 @@
-# Run FrameworkController
+# <a name="RunFrameworkController">Run FrameworkController</a>
 
-- Ensure at most one instance of FrameworkController is run for a single k8s cluster.
-- For the full FrameworkController configuration, see
+We provide various approaches to run FrameworkController:
+   - [Run By Kubernetes StatefulSet](#RunByKubernetesStatefulSet)
+   - [Run By Docker Container](#RunByDockerContainer)
+   - [Run By OS Process](#RunByOSProcess)
+
+Notes:
+   - For a single k8s cluster, ensure at most one instance of FrameworkController is running at any point in time.
+   - For the full FrameworkController configuration, see
  [Config Usage](../../pkg/apis/frameworkcontroller/v1/config.go) and [Config Example](../../example/config/default/frameworkcontroller.yaml).
 
-## Run by a Kubernetes StatefulSet
-
+## <a name="RunByKubernetesStatefulSet">Run By Kubernetes StatefulSet</a>
+- This approach is better for production, since StatefulSet by itself provides [self-healing](https://kubernetes.io/docs/concepts/workloads/pods/pod/#durability-of-pods-or-lack-thereof) and can ensure [at most one instance](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/pod-safety.md) of FrameworkController is running at any point in time.
 - Using official image to demonstrate this example.
 
+**Prerequisite**
+
+If the k8s cluster enforces [Authorization](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#authorization-modules), you need to first create a [Service Account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account) with granted permission for FrameworkController. For example, if the cluster enables [RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#kubectl-create-clusterrolebinding):
+```shell
+kubectl create serviceaccount frameworkcontroller --namespace default
+kubectl create clusterrolebinding frameworkcontroller --clusterrole=cluster-admin --user=system:serviceaccount:default:frameworkcontroller
+```
+
+**Run**
+
+Run FrameworkController with above Service Account and the [k8s inClusterConfig](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod):
 ```shell
 kubectl create -f frameworkcontroller.yaml
 ```
@@ -30,20 +47,14 @@ spec:
       labels:
         app: frameworkcontroller
     spec:
-      # Need to grant permission if target cluster enforces authorization, such as RBAC:
-      #   kubectl create serviceaccount frameworkcontroller --namespace default
-      #   kubectl create clusterrolebinding frameworkcontroller --clusterrole=cluster-admin --user=system:serviceaccount:default:frameworkcontroller
-      # See k8s service account and authorization:
-      #   https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account
-      #   https://kubernetes.io/docs/reference/access-authn-authz/authorization/#authorization-modules
-      #serviceAccountName: frameworkcontroller
+      # Using the service account with granted permission
+      # if the k8s cluster enforces authorization.
+      serviceAccountName: frameworkcontroller
       containers:
       - name: frameworkcontroller
         image: frameworkcontroller/frameworkcontroller
-        # No need to specify KUBE_APISERVER_ADDRESS or KUBECONFIG if the target cluster
-        # to control is the cluster running the StatefulSet.
-        # See k8s inClusterConfig:
-        #   https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
+        # Using k8s inClusterConfig, so usually, no need to specify
+        # KUBE_APISERVER_ADDRESS or KUBECONFIG
         #env:
         #- name: KUBE_APISERVER_ADDRESS
         #  value: {http[s]://host:port}
@@ -51,9 +62,11 @@ spec:
         #  value: {Pod Local KubeConfig File Path}
 ```
 
-## Run by a Docker Container
-
+## <a name="RunByDockerContainer">Run By Docker Container</a>
+- This approach may be better for development sometimes.
 - Using official image to demonstrate this example.
+
+**Run**
 
 If you have an insecure ApiServer address (can be got from [Insecure ApiServer](https://kubernetes.io/docs/reference/access-authn-authz/controlling-access/#api-server-ports-and-ips) or [kubectl proxy](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#using-kubectl-proxy)) which does not enforce authentication, you only need to provide the address:
 ```shell
@@ -69,10 +82,24 @@ For example, if the k8s cluster is created by [Minikube](https://kubernetes.io/d
 docker run -e KUBECONFIG=/mnt/.kube/config -v ${HOME}/.kube/config:/mnt/.kube/config -v ${HOME}/.minikube:${HOME}/.minikube frameworkcontroller/frameworkcontroller
 ```
 
-## Run by a OS Process
-
+## <a name="RunByOSProcess">Run By OS Process</a>
+- This approach may be better for development sometimes.
 - Using local built binary distribution to demonstrate this example.
-- Prerequisite: Clone the source code into `${GOPATH}/src/github.com/microsoft/frameworkcontroller` and build the binary distribution by the [go-build.sh](../../build/frameworkcontroller/go-build.sh).
+
+**Prerequisite**
+
+Ensure you have installed [Golang 10.10 or above](https://golang.org/doc/install#install) and the [${GOPATH}](https://golang.org/doc/code.html#GOPATH) is valid.
+
+Then build the FrameworkController binary distribution:
+```shell
+export PROJECT_DIR=${GOPATH}/src/github.com/microsoft/frameworkcontroller
+mkdir -p ${PROJECT_DIR}
+git clone https://github.com/Microsoft/frameworkcontroller.git ${PROJECT_DIR}
+cd ${PROJECT_DIR}
+./build/frameworkcontroller/go-build.sh
+```
+
+**Run**
 
 If you have an insecure ApiServer address (can be got from [Insecure ApiServer](https://kubernetes.io/docs/reference/access-authn-authz/controlling-access/#api-server-ports-and-ips) or [kubectl proxy](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#using-kubectl-proxy)) which does not enforce authentication, you only need to provide the address:
 ```shell

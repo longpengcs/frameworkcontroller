@@ -73,7 +73,7 @@ If you have an insecure ApiServer address (can be got from [Insecure ApiServer](
 docker run -e KUBE_APISERVER_ADDRESS={http[s]://host:port} frameworkcontroller/frameworkcontroller
 ```
 
-Otherwise, you only need to provide your [KubeConfig File](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#explore-the-home-kube-directory)  which inlines or refers the [ApiServer Credential Files](https://kubernetes.io/docs/reference/access-authn-authz/controlling-access/#transport-security):
+Otherwise, you need to provide your [KubeConfig File](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#explore-the-home-kube-directory)  which inlines or refers the [ApiServer Credential Files](https://kubernetes.io/docs/reference/access-authn-authz/controlling-access/#transport-security) with [granted permission](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#define-clusters-users-and-contexts):
 ```shell
 docker run -e KUBECONFIG=/mnt/.kube/config -v {Host Local KubeConfig File Path}:/mnt/.kube/config -v {Host Local ApiServer Credential File Path}:{Container Local ApiServer Credential File Path} frameworkcontroller/frameworkcontroller
 ```
@@ -106,11 +106,15 @@ If you have an insecure ApiServer address (can be got from [Insecure ApiServer](
 KUBE_APISERVER_ADDRESS={http[s]://host:port} ./dist/frameworkcontroller/start.sh
 ```
 
-Otherwise, you only need to provide your [KubeConfig File](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#explore-the-home-kube-directory) which inlines or refers the [ApiServer Credential Files](https://kubernetes.io/docs/reference/access-authn-authz/controlling-access/#transport-security):
+Otherwise, you need to provide your [KubeConfig File](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#explore-the-home-kube-directory) which inlines or refers the [ApiServer Credential Files](https://kubernetes.io/docs/reference/access-authn-authz/controlling-access/#transport-security) with [granted permission](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#define-clusters-users-and-contexts):
 ```shell
 KUBECONFIG={Process Local KubeConfig File Path} ./dist/frameworkcontroller/start.sh
 ```
 For example:
 ```shell
 KUBECONFIG=${HOME}/.kube/config ./dist/frameworkcontroller/start.sh
+```
+And in above example, `${HOME}/.kube/config` is the default value of `KUBECONFIG`, so you can skip it:
+```shell
+./dist/frameworkcontroller/start.sh
 ```
